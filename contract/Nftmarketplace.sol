@@ -221,7 +221,7 @@ function getNFTTransactionHistory(uint256 _tokenId) external view returns (Trans
 
 
 
-    function buyNFT(uint256 _tokenId) external payable {
+    function buyNFT(uint256 _tokenId, address _buyerWallet) external payable {
         Listing storage listing = listings[_tokenId];
         require(listing.price > 0, "NFT is not listed for sale");
         require(msg.value >= listing.price, "Insufficient funds sent");
@@ -230,14 +230,14 @@ function getNFTTransactionHistory(uint256 _tokenId) external view returns (Trans
         uint256 price = listing.price;
 
         delete listings[_tokenId];
-        ERC721(nftContract).safeTransferFrom(seller, msg.sender, _tokenId);
+        ERC721(nftContract).safeTransferFrom(seller, _buyerWallet, _tokenId);
 
          // Track user-bought NFT
-        userBoughtNFTs[msg.sender].push(_tokenId);
+        userBoughtNFTs[_buyerWallet].push(_tokenId);
 
         Transaction memory transaction = Transaction({
             from: seller,
-            to: msg.sender,
+            to: _buyerWallet,
             tokenId: _tokenId,
             oldPrice: listing.price,
             newPrice: msg.value,
@@ -251,7 +251,7 @@ function getNFTTransactionHistory(uint256 _tokenId) external view returns (Trans
         (bool success, ) = payable(seller).call{value: price}("");
         require(success, "Transfer to seller failed");
 
-        emit NFTSold(_tokenId, msg.sender, seller, price);
+        emit NFTSold(_tokenId, _buyerWallet, seller, price);
     }
 
     function resellNFT(uint256 _tokenId, uint256 _price, string memory _name, string memory _description) external {
